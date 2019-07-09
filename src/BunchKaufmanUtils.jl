@@ -33,7 +33,7 @@ function LinearAlgebra.:\(F::SBunchKaufman{N}, B::Union{StaticVector{N},StaticMa
     return similar_type(B, eltype(X))(permrows(X, F.p))
 end
 
-function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; tol=sqrt(eps(eltype(F))))
+function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; tol=eps(eltype(F))*10*size(B, 1))
     D, U, p = F.D, F.U, F.p
     n = size(D, 1)
     Y = U \ permrows(B, invperm(p))
