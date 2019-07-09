@@ -33,10 +33,10 @@ function LinearAlgebra.:\(F::SBunchKaufman{N}, B::Union{StaticVector{N},StaticMa
     return similar_type(B, eltype(X))(permrows(X, F.p))
 end
 
-function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; tol=eps(eltype(F))*10*size(B, 1))
+function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; tol=eps(real(eltype(F)))*10*size(B, 1))
     D, U, p = F.D, F.U, F.p
     n = size(D, 1)
-    Y = U \ permrows(B, invperm(p))
+    Y = U \ permrows(B, p)
     dthresh = tol*maximum(abs.(D.d))
     i = 1
     while i <= n
@@ -49,7 +49,7 @@ function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; 
         end
     end
     X = U' \ Y
-    return simtype(B, eltype(X))(permrows(X, p))
+    return simtype(B, eltype(X))(permrows(X, invperm(p)))
 end
 
 ## Utilities
@@ -70,11 +70,11 @@ end
 
 function solve1!(Y::AbstractMatrix, i, d, dthresh)
     if abs(d) >= dthresh
-        for j in eachindex(Y, 2)
+        for j in axes(Y, 2)
             Y[i,j] /= d
         end
     else
-        for j in eachindex(Y, 2)
+        for j in axes(Y, 2)
             Y[i,j] = 0
         end
     end
@@ -94,7 +94,7 @@ end
 
 function solve2!(Y::AbstractMatrix, i, di, dui, di1, dthresh)
     λ1, λ2, V = symeig(di, dui, di1)
-    for j in eachindex(Y, 2)
+    for j in axes(Y, 2)
         y2 = SVector(Y[i,j], Y[i+1,j])
         vy = V*y2
         dinvvy = SVector(abs(λ1) >= dthresh ? vy[1]/λ1 : zero(eltype(vy)),
@@ -105,7 +105,7 @@ function solve2!(Y::AbstractMatrix, i, di, dui, di1, dthresh)
     return Y
 end
 
-function symeig(a, b, d)
+function symeig(a::Real, b::Real, d::Real)
     @assert !iszero(b)
     T, D = a + d, a*d-b^2
     if T >= 0
@@ -115,7 +115,8 @@ function symeig(a, b, d)
         λ2 = T/2 - sqrt((a-d)^2/4 + b^2)
         λ1 = D/λ2
     end
-    V = @SMatrix [λ1-d b; b λ2-a]
+    n1, n2 = sqrt((λ1-d)^2 + b^2), sqrt(b^2 + (λ2-a)^2)
+    V = @SMatrix [(λ1-d)/n1 b/n2; b/n1 (λ2-a)/n2]
     return λ1, λ2, V
 end
 
