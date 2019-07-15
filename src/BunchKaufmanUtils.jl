@@ -40,7 +40,7 @@ function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; 
     D, U, p = F.D, F.U, F.p
     n = size(D, 1)
     Y = U \ permrows(B, p)
-    dthresh = tol*max(maximum(abs.(D.d)), maximum(abs.(D.du)))
+    dthresh = tol*max(maximum(abs.(D.d)), isempty(D.du) ? zero(eltype(D.du)) : maximum(abs.(D.du)))
     i = 1
     while i <= n
         if i == n || iszero(D.du[i])
@@ -80,7 +80,7 @@ simtype(B, ::Type{T}) where T = identity
 simtype(B::StaticArray, ::Type{T}) where T = similar_type(B, T)
 
 function solve1!(y::AbstractVector, i, d, dthresh)
-    if abs(d) >= dthresh
+    if abs(d) > dthresh
         y[i] /= d
     else
         y[i] = 0
@@ -89,7 +89,7 @@ function solve1!(y::AbstractVector, i, d, dthresh)
 end
 
 function solve1!(Y::AbstractMatrix, i, d, dthresh)
-    if abs(d) >= dthresh
+    if abs(d) > dthresh
         for j in axes(Y, 2)
             Y[i,j] /= d
         end

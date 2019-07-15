@@ -23,6 +23,10 @@ using Test
     F = bunchkaufman(A; check=false)
     x = pseudosolve(F, v)
     @test A*x ≈ v
+
+    # Trivial all-zeros case
+    F = bunchkaufman(reshape([0], (1, 1)), check=false)
+    @test pseudosolve(F, [0]) == [0]
 end
 
 # Tests modified from the stdlib Bunch-Kaufman tests
