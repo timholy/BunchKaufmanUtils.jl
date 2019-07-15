@@ -7,11 +7,15 @@ using Test
     D = Diagonal([-1, 1])
     A = V*D*V'
     F = bunchkaufman(A)
+    @test !ispossemidef(F)
     v = [1,2]
     @test pseudosolve(F, v) ≈ F \ v ≈ A \ v
     AS = SMatrix{2,2}(A)
     vs = SVector{2}(v)
     FS = @inferred(bunchkaufman(AS))
+    @test size(FS) == (2,2)
+    @test size(FS, 1) == 2
+    @test size(FS, 3) == 1
     @test @inferred(pseudosolve(FS, vs)) ≈ @inferred(FS \ vs) ≈ @inferred(AS \ vs)
 
     A = [1 1; 1 1]

@@ -2,7 +2,7 @@ module BunchKaufmanUtils
 
 using LinearAlgebra, StaticArrays
 
-export pseudosolve
+export pseudosolve, ispossemidef
 
 # Piracy, move to StaticArrays
 struct SBunchKaufman{N,T,DT,UT} <: Factorization{T}
@@ -10,6 +10,9 @@ struct SBunchKaufman{N,T,DT,UT} <: Factorization{T}
     D::DT
     U::UT
 end
+
+Base.size(F::SBunchKaufman{N}) where N = (N, N)
+Base.size(F::SBunchKaufman{N}, dim::Integer) where N = dim < 3 ? N : 1
 
 function Base.invperm(a::StaticVector{N,Int}) where N
     n = length(a)
@@ -37,7 +40,7 @@ function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; 
     D, U, p = F.D, F.U, F.p
     n = size(D, 1)
     Y = U \ permrows(B, p)
-    dthresh = tol*maximum(abs.(D.d))
+    dthresh = tol*max(maximum(abs.(D.d)), maximum(abs.(D.du)))
     i = 1
     while i <= n
         if i == n || iszero(D.du[i])
@@ -50,6 +53,23 @@ function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; 
     end
     X = U' \ Y
     return simtype(B, eltype(X))(permrows(X, invperm(p)))
+end
+
+function ispossemidef(F::Union{BunchKaufman,SBunchKaufman}; tol=eps(real(eltype(F)))*10*size(F, 1))
+    D, U, p = F.D, F.U, F.p
+    dthresh = tol*max(maximum(abs.(D.d)), maximum(abs.(D.du)))
+    i, n = 1, size(F, 1)
+    while i <= n
+        if i == n || iszero(D.du[i])
+            D.d[i] < -dthresh && return false
+            i += 1
+        else
+            λ1, λ2, _ = symeig(D.d[i], D.du[i], D.d[i+1])
+            (λ1 < -dthresh || λ2 < -dthresh) && return false
+            i += 2
+        end
+    end
+    return true
 end
 
 ## Utilities
