@@ -10,6 +10,7 @@ using Test
     @test !ispossemidef(F)
     v = [1,2]
     @test pseudosolve(F, v) ≈ F \ v ≈ A \ v
+    @test F*v ≈ A*v
     AS = SMatrix{2,2}(A)
     vs = SVector{2}(v)
     FS = @inferred(bunchkaufman(AS))
@@ -48,10 +49,12 @@ using LinearAlgebra: BlasComplex, BlasFloat, BlasReal, QRPivoted
     a2img  = randn(n,n)/2
     breal = randn(n,2)/2
     bimg  = randn(n,2)/2
+    vreal, vimg = randn(n), randn(n)
 
     @testset "$eltya argument A" for eltya in (Float32, Float64, Int) # , ComplexF32, ComplexF64)
         a = eltya == Int ? rand(1:7, n, n) : convert(Matrix{eltya}, eltya <: Complex ? complex.(areal, aimg) : areal)
         a2 = eltya == Int ? rand(1:7, n, n) : convert(Matrix{eltya}, eltya <: Complex ? complex.(a2real, a2img) : a2real)
+        vT = eltya == Int ? rand(1:7, n) : convert(Vector{eltya}, eltya <: Complex ? complex.(vreal, vimg) : vreal)
         asym = transpose(a) + a                  # symmetric indefinite
         aher = a' + a                  # Hermitian indefinite
         apd  = a' * a                  # Positive-definite
@@ -66,6 +69,8 @@ using LinearAlgebra: BlasComplex, BlasFloat, BlasReal, QRPivoted
                 bc1 = bunchkaufman(Hermitian(aher, :U))
                 @test bc1 \ aher ≈ Matrix(I, n, n)
                 @test pseudosolve(bc1, aher) ≈ Matrix(I, n, n)
+                @test bc1*a ≈ aher*a
+                @test bc1*vT ≈ aher*vT
                 @testset for rook in (false, true)
                     @test pseudosolve(bunchkaufman(Symmetric(transpose(a) + a, uplo), rook), transpose(a) + a) ≈ Matrix(I, n, n)
                 end

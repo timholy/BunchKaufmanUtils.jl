@@ -31,9 +31,15 @@ function LinearAlgebra.bunchkaufman(A::SMatrix{N,N,T}, rook::Bool=false; check=t
     return SBunchKaufman{N,eltype(F),typeof(D),typeof(U)}(SVector{N,Int}(F.p), D, U)
 end
 
+function Base.:*(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat)
+    D, U, p = F.D, F.U, F.p
+    return permrows(U*(D*(U'*permrows(B, F.p))), invperm(F.p))
+end
+
 function LinearAlgebra.:\(F::SBunchKaufman{N}, B::Union{StaticVector{N},StaticMatrix{N}}) where N
-    X = F.U' \ (F.D \ (F.U \ permrows(B, invperm(F.p))))
-    return similar_type(B, eltype(X))(permrows(X, F.p))
+    D, U, p = F.D, F.U, F.p
+    X = U' \ (D \ (U \ permrows(B, invperm(p))))
+    return similar_type(B, eltype(X))(permrows(X, p))
 end
 
 function pseudosolve(F::Union{BunchKaufman,SBunchKaufman}, B::AbstractVecOrMat; tol=eps(real(eltype(F)))*10*size(B, 1))
